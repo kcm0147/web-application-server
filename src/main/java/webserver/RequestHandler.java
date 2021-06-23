@@ -69,18 +69,15 @@ public class RequestHandler extends Thread {
                         stringMap.get("name"), stringMap.get("email"));
 
                     log.debug("user : {}",user);
-                    requestUrl = "/index.html";
+                    response302Header(dos,"/index.html");
                 }
 
             }
             else if(tokens[0].equals("GET")){
+                body = Files.readAllBytes(new File("./webapp" + requestUrl).toPath());
+                response200Header(dos, body.length);
+                responseBody(dos, body);
             }
-
-
-            body = Files.readAllBytes(new File("./webapp" + requestUrl).toPath());
-
-            response200Header(dos, body.length);
-            responseBody(dos, body);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -91,6 +88,16 @@ public class RequestHandler extends Thread {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
             dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void response302Header(DataOutputStream dos, String redirectUrl) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: "+ redirectUrl+"\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
