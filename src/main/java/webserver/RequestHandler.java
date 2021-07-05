@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 
 import java.nio.file.Files;
+import java.util.Collection;
 import java.util.Map;
 import java.util.StringTokenizer;
 import model.User;
@@ -90,13 +91,58 @@ public class RequestHandler extends Thread {
 
             }
             else if(tokens[0].equals("GET")){
-                body = Files.readAllBytes(new File("./webapp" + requestUrl).toPath());
-                response200Header(dos, body.length);
-                responseBody(dos, body);
+
+                if(requestUrl.startsWith("/user/list")){
+
+                    String[] tempTokens;
+
+                    while(true){
+                        String head=br.readLine();
+                        tempTokens=head.split(": ");
+                        if(tempTokens[0].equals("Cookie")){
+                            break;
+                        }
+                    }
+                    Map<String, String> parameters = HttpRequestUtils.parseCookies(tempTokens[1]);
+
+                    if(!Boolean.parseBoolean(parameters.get("logined"))){
+                        response302HeaderWithCookie(dos,"/index.html",false);
+                        return;
+                    }
+                    else{ // make File
+                        Collection<User> users = DataBase.findAll();
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("<table border='1'>");
+                        for (User user : users) {
+                            sb.append("<tr>");
+                            sb.append("<td>" + user.getUserId() + "</td>");
+                            sb.append("<td>" + user.getName() + "</td>");
+                            sb.append("<td>" + user.getEmail() + "</td>");
+                            sb.append("</tr>");
+                        }
+                        sb.append("</table>");
+                        body = sb.toString().getBytes();
+                        dos = new DataOutputStream(out);
+                        response200Header(dos, body.length);
+                        responseBody(dos, body);
+                    }
+
+                }
+
+
+                responseResource(out,requestUrl);
             }
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+
+    private void responseResource(OutputStream out, String url) throws IOException {
+        DataOutputStream dos = new DataOutputStream(out);
+        byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
+        response200Header(dos, body.length);
+        responseBody(dos, body);
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
