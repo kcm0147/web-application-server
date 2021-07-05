@@ -69,7 +69,23 @@ public class RequestHandler extends Thread {
                         stringMap.get("name"), stringMap.get("email"));
 
                     log.debug("user : {}",user);
+                    DataBase.addUser(user);
+
                     response302Header(dos,"/index.html");
+                }
+                else if(requestUrl.startsWith("/user/login")){
+                    String query = IOUtils.readData(br,length);
+                    Map<String, String> stringMap = HttpRequestUtils.parseQueryString(query);
+                    User user= DataBase.findUserById(stringMap.get("userId"));
+
+                    if(user==null || !user.getPassword().equals(stringMap.get("password"))){
+                        log.debug("login fail");
+                        response302HeaderWithCookie(dos,"/user/login_failed.html",false);
+                    }
+                    else {
+                        log.debug("login success!");
+                        response302HeaderWithCookie(dos, "/index.html", true);
+                    }
                 }
 
             }
@@ -88,6 +104,17 @@ public class RequestHandler extends Thread {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
             dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void response302HeaderWithCookie(DataOutputStream dos, String redirectUrl,boolean cookie) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: "+ redirectUrl+"\r\n");
+            dos.writeBytes("Set-Cookie: logined="+ cookie+"\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
